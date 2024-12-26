@@ -1,0 +1,51 @@
+# Autogrid y Autodock
+## AutoGrid
+Este paso es necesario para obtener los archivos *.map <br>
+Correr el siguiente comando por terminal dentro de la carpeta Target:
+```
+/home/emilia/Downloads/autodocksuite-4.2.6-x86_64Linux2/x86_64Linux2/autogrid4 -p a.gpf -l a.glg
+```
+
+## AutoDock
+Una vez que contamos con todos los archivos necesarios dentro de cada carpeta, podemos hacer el docking en si mismo, para eso, vamos a usar 2 archivos .sh:
+### Submit_ADdpfs_1.sh:
+```
+#!/bin/bash
+export PATH=~/mgltools_x86_64Linux2_1.5.7/bin:$PATH
+
+target=p85 #Nombre del target
+N=58 # N moleculas a correr
+n_submits=1 
+n_cores=30 # Cores a usar
+j0=1 
+jf=58 # N moleculas a correr
+
+mkdir ${target}_Dockings
+cd ${target}_Dockings
+
+
+#j=${N}/${n_submits}
+
+for ((I=${j0};I<=${jf}; I++));do
+  while true; do
+    SUBJOBS=`jobs -r | wc -l`
+    if [ $SUBJOBS -lt ${n_cores} ] ; then
+        mkdir ligand${I}_${target}
+        cd ligand${I}_${target}
+        cp ../../${target}_ligands/ligand${I}.pdbqt .
+        ln -s ../../${target}/${target}_rec.pdbqt .
+        ln -s ../../${target}/${target}_rec*map* .
+
+        pythonsh ../../scripts/prepare_dpf4.py -l ligand${I}.pdbqt -r ${target}_rec.pdbqt \
+        -p ga_num_evals=1750000 \
+        -p ga_pop_size=150 \
+        -p ga_run=20 \
+        -p rmstol=2.0 &
+        cd ..
+        break
+    fi
+  done
+done
+wait
+```
+Para poder usarlo, vamos a necesitar tener tambien los archivos de python que puedene ncontar en [scripts_aux]()
